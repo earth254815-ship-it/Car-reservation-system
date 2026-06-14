@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app_title">ระบบจองรถมหาวิทยาลัย | University Vehicle Booking System</title>
+    
+    <!-- Meta Descriptions for SEO -->
+    <meta name="description" content="ระบบจองรถออนไลน์สำหรับนิสิต อาจารย์ และบุคลากร สะดวก รวดเร็ว ตรวจสอบสถานะและเวลาว่างได้ทันทีแบบ Real-time">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- App Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- 1. LOADING OVERLAY (Simulating API loading state) -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- 2. TOAST CONTAINER FOR REAL-TIME ALERTS -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 2.5 LANDING VIEW (Replicating reserve.cmru.ac.th) -->
+    <div id="view-landing" class="landing-container">
+        <div class="landing-content">
+            <div class="landing-header">
+                <!-- Circular Emblem (Beautiful SVG resembling university seal) -->
+                <svg class="landing-emblem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="46" fill="#1e3a8a" stroke="#fde047" stroke-width="4" />
+                    <circle cx="50" cy="50" r="40" fill="#fde047" />
+                    <circle cx="50" cy="50" r="36" fill="#1e3a8a" />
+                    <path d="M 50 14 A 36 36 0 0 1 86 50" fill="none" stroke="#fde047" stroke-width="2" stroke-dasharray="2,2" />
+                    <path d="M 50 86 A 36 36 0 0 1 14 50" fill="none" stroke="#fde047" stroke-width="2" stroke-dasharray="2,2" />
+                    <path d="M 50 22 L 62 38 L 56 42 L 50 32 L 44 42 L 38 38 Z" fill="#fde047" />
+                    <circle cx="50" cy="56" r="14" fill="#a855f7" stroke="#ffffff" stroke-width="1.5" />
+                    <path d="M 50 46 C 53 50 50 54 50 56 C 50 54 47 50 50 46 Z" fill="#ef4444" />
+                    <circle cx="50" cy="56" r="4" fill="#ffffff" />
+                    <text x="50" y="78" font-size="7" font-weight="bold" fill="#ffffff" text-anchor="middle">CMRU</text>
+                    <text x="50" y="85" font-size="5" fill="#fde047" text-anchor="middle">RESERVATION</text>
+                </svg>
+                <h1 class="landing-title">ระบบขอใช้รถมหาวิทยาลัย</h1>
+            </div>
+
+            <div class="landing-grid">
+                <!-- 1. สำหรับผู้ขอใช้รถ -->
+                <div class="landing-card card-requester" onclick="app.selectPortal('requester')">
+                    <i class="fa-solid fa-user"></i>
+                    <span>สำหรับผู้ขอใช้รถ</span>
+                </div>
+                <!-- 2. สำหรับพนักงานขับรถ -->
+                <div class="landing-card card-driver" onclick="app.selectPortal('driver')">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span>สำหรับพนักงานขับรถ</span>
+                </div>
+                <!-- 3. สำหรับผู้ดูแลระบบ -->
+                <div class="landing-card card-admin" onclick="app.selectPortal('admin')">
+                    <i class="fa-solid fa-cog"></i>
+                    <span>สำหรับผู้ดูแลระบบ</span>
+                </div>
+                <!-- 4. สำหรับผู้บริหาร -->
+                <div class="landing-card card-executive" onclick="app.selectPortal('executive')">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span>สำหรับผู้บริหาร</span>
+                </div>
+            </div>
+
+            <p class="landing-footer-text">หลังจากใช้งานระบบ กรุณาประเมินการใช้งาน เพื่อจะได้ปรับปรุงและพัฒนาระบบให้ดียิ่งขึ้น</p>
+
+            <a href="#" class="btn-evaluation" onclick="app.openEvaluation(); return false;">
+                <i class="fa-solid fa-star"></i>
+                <span>ประเมินการใช้งานระบบ / แบบประเมินความพึงพอใจ</span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- 3. AUTH VIEW (LOGIN / SIGNUP) -->
+    <div id="view-auth" class="auth-container" style="display: none;">
+        <div class="auth-card">
+            <!-- Dynamic Portal Title Header -->
+            <div id="auth-portal-header" class="auth-portal-title"></div>
+
+            <div class="auth-logo">
+                <div class="logo-box">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <h2>CAR BU</h2>
+            </div>
+            
+            <p id="auth-subtitle" class="auth-subtitle-white" data-i18n="auth_subtitle">ระบบจัดการการจองยานพาหนะส่วนกลาง</p>
+
+            <div class="auth-tabs">
+                <button type="button" id="tab-login" class="auth-tab-btn active" data-i18n="btn_login_tab">เข้าสู่ระบบ</button>
+                <button type="button" id="tab-register" class="auth-tab-btn" data-i18n="btn_register_tab">สมัครสมาชิก</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-login" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-email" data-i18n="label_email">อีเมลผู้ใช้งาน</label>
+                    <input type="email" id="login-email" required placeholder="example@carbooking.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password" data-i18n="label_password">รหัสผ่าน</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" id="btn-submit-login" class="auth-submit-btn" data-i18n="btn_login">เข้าสู่ระบบ</button>
+                <p class="auth-subtitle" style="margin-top: 10px;" data-i18n="demo_accounts_hint">
+                    บัญชีทดสอบ: admin@carbooking.com / student@carbooking.com / staff@carbooking.com (รหัสผ่าน: admin123 / student123 / staff123)
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="form-register" class="auth-form">
+                <div class="form-group">
+                    <label for="reg-name" data-i18n="label_fullname">ชื่อ-นามสกุล</label>
+                    <input type="text" id="reg-name" required placeholder="สมชาย รักดี">
+                </div>
+                <div class="form-group">
+                    <label for="reg-phone" data-i18n="label_phone">เบอร์โทรศัพท์</label>
+                    <input type="tel" id="reg-phone" required placeholder="0812345678">
+                </div>
+                <div class="form-group">
+                    <label for="reg-email" data-i18n="label_email">อีเมล</label>
+                    <input type="email" id="reg-email" required placeholder="yourname@domain.com">
+                </div>
+                <div class="form-group">
+                    <label for="reg-role" data-i18n="label_role">สิทธิ์การเข้าใช้งาน</label>
+                    <select id="reg-role" required>
+                        <option value="student" data-i18n="role_student">นิสิต (Student)</option>
+                        <option value="staff" data-i18n="role_staff">อาจารย์ / บุคลากร (Lecturer/Staff)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password" data-i18n="label_password">รหัสผ่าน</label>
+                    <input type="password" id="reg-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" id="btn-submit-register" class="auth-submit-btn" data-i18n="btn_register">สมัครสมาชิก</button>
+            </form>
+            
+            <!-- Back to home landing button -->
+            <button type="button" id="btn-back-to-landing" class="back-home-btn">
+                <i class="fa-solid fa-house"></i>
+                <span data-i18n="btn_back_home">ย้อนกลับหน้าแรก</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. MAIN APP SYSTEM SHELL -->
+    <div id="app-shell" style="display: none;">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside id="sidebar-nav" class="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <h1>CAR BU</h1>
+            </div>
+
+            <!-- NAVIGATION ITEMS (Dynamic based on role) -->
+            <ul id="sidebar-menu-list" class="sidebar-menu">
+                <!-- User (Student/Staff) Sidebar items -->
+                <li id="menu-student-explorer" class="sidebar-menu-item active">
+                    <a href="#" onclick="app.navigateTo('view-student-explorer'); return false;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span data-i18n="menu_find_car">ค้นหารถและจอง</span>
+                    </a>
+                </li>
+                <li id="menu-student-bookings" class="sidebar-menu-item">
+                    <a href="#" onclick="app.navigateTo('view-student-bookings'); return false;">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span data-i18n="menu_my_bookings">ประวัติการจอง</span>
+                    </a>
+                </li>
+
+                <!-- Driver Sidebar items -->
+                <li id="menu-driver-schedule" class="sidebar-menu-item" style="display: none;">
+                    <a href="#" onclick="app.navigateTo('view-driver-schedule'); return false;">
+                        <i class="fa-solid fa-route"></i>
+                        <span data-i18n="menu_driver_schedule">งานขับรถยนต์</span>
+                    </a>
+                </li>
+
+                <!-- Admin Sidebar items -->
+                <li id="menu-admin-dashboard" class="sidebar-menu-item" style="display: none;">
+                    <a href="#" onclick="app.navigateTo('view-admin-dashboard'); return false;">
+                        <i class="fa-solid fa-gauge"></i>
+                        <span data-i18n="menu_admin_dashboard">อนุมัติการจอง</span>
+                    </a>
+                </li>
+                <li id="menu-admin-vehicles" class="sidebar-menu-item" style="display: none;">
+                    <a href="#" onclick="app.navigateTo('view-admin-vehicles'); return false;">
+                        <i class="fa-solid fa-car"></i>
+                        <span data-i18n="menu_admin_vehicles">จัดการรถยนต์</span>
+                    </a>
+                </li>
+                <li id="menu-admin-reports" class="sidebar-menu-item" style="display: none;">
+                    <a href="#" onclick="app.navigateTo('view-admin-reports'); return false;">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span data-i18n="menu_admin_reports">รายงานและสถิติ</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button type="button" id="btn-logout" class="logout-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span data-i18n="btn_logout">ออกจากระบบ</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- SIDEBAR OVERLAY (Mobile backdrop to close sidebar) -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <!-- MAIN WINDOW WRAPPER -->
+        <div class="content-wrapper">
+            
+            <!-- HEADER -->
+            <header>
+                <div class="header-actions" style="gap: 1.5rem;">
+                    <!-- Menu hamburger toggle for Mobile -->
+                    <button type="button" id="btn-menu-toggle" class="menu-toggle-btn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="header-title">
+                        <h2 id="header-current-view-title" data-i18n="menu_find_car">ค้นหารถยนต์และจอง</h2>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <!-- Language Switching Toggle (TH/EN) (NFR-04) -->
+                    <button type="button" id="btn-lang-toggle" class="lang-toggle">
+                        <i class="fa-solid fa-globe"></i>
+                        <span id="lang-label">EN</span>
+                    </button>
+
+                    <!-- Dark Mode Toggle Button -->
+                    <button type="button" id="btn-dark-toggle" class="icon-btn">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+
+                    <!-- Notifications Bell & Dropdown (FR-05) -->
+                    <button type="button" id="btn-notif-bell" class="icon-btn">
+                        <i class="fa-solid fa-bell"></i>
+                        <span id="notif-count-badge" class="badge" style="display: none;">0</span>
+                    </button>
+                    
+                    <div id="dropdown-notifications" class="notif-dropdown">
+                        <div class="notif-header">
+                            <span data-i18n="notif_header">การแจ้งเตือน</span>
+                            <button type="button" id="btn-clear-notif" style="font-size: 0.75rem; color: var(--primary);" data-i18n="notif_clear">อ่านทั้งหมด</button>
+                        </div>
+                        <ul id="notif-dropdown-list" class="notif-list">
+                            <!-- Injected by UI layer -->
+                        </ul>
+                    </div>
+
+                    <!-- User Profile Badge -->
+                    <div class="user-profile-tag">
+                        <div id="user-avatar" class="user-profile-avatar">S</div>
+                        <span id="user-display-name" class="user-profile-name">Student Name</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- PAGES AND VIEW VIEWS -->
+            <main>
+
+                <!-- SECTION 1: STUDENT / STAFF EXPLORER & SEARCH (FR-03) -->
+                <section id="view-student-explorer" class="view-section active">
+                    <!-- Searching & Filtering Block -->
+                    <div class="filter-bar">
+                        <div class="search-input-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-vehicle-input" placeholder="ค้นหายานพาหนะด้วยชื่อรุ่นหรือเลขทะเบียน..." data-i18n="placeholder_search">
+                        </div>
+                        <div id="vehicle-type-filters" class="filter-group">
+                            <button type="button" class="filter-chip active" data-type="all" data-i18n="filter_all">ทั้งหมด</button>
+                            <button type="button" class="filter-chip" data-type="sedan" data-i18n="filter_sedan">เก๋ง (Sedan)</button>
+                            <button type="button" class="filter-chip" data-type="suv" data-i18n="filter_suv">อเนกประสงค์ (SUV)</button>
+                            <button type="button" class="filter-chip" data-type="van" data-i18n="filter_van">ตู้ (Van)</button>
+                            <button type="button" class="filter-chip" data-type="ev" data-i18n="filter_ev">ไฟฟ้า (EV)</button>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 1.25rem;" data-i18n="header_vehicle_list">ยานพาหนะทั้งหมดที่พร้อมบริการ</h3>
+                    
+                    <!-- Vehicle Cards Container -->
+                    <div id="explorer-vehicles-grid" class="cars-grid">
+                        <!-- Cards will render here dynamically -->
+                    </div>
+                </section>
+
+                <!-- SECTION 1.5: DRIVER SCHEDULE ASSIGNMENTS -->
+                <section id="view-driver-schedule" class="view-section">
+                    <h3 style="margin-bottom: 1.25rem;" data-i18n="header_driver_schedule">ตารางงานขับรถยนต์ของฉัน</h3>
+                    <div id="driver-trips-container" class="driver-trip-list">
+                        <!-- Injected dynamically by UI layer -->
+                    </div>
+                </section>
+
+                <!-- SECTION 2: STUDENT / STAFF BOOKING HISTORY (FR-04) -->
+                <section id="view-student-bookings" class="view-section">
+                    <h3 style="margin-bottom: 1.25rem;" data-i18n="header_booking_history">ประวัติการจองรถของฉัน</h3>
+                    
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="th_car">ยานพาหนะ</th>
+                                        <th data-i18n="th_start">วันเวลาเริ่มใช้</th>
+                                        <th data-i18n="th_end">วันเวลาสิ้นสุด</th>
+                                        <th data-i18n="th_reason">จุดประสงค์การใช้งาน</th>
+                                        <th data-i18n="th_status">สถานะ</th>
+                                        <th data-i18n="th_actions">การดำเนินงาน</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="student-bookings-table-body">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 3: ADMIN BOOKING APPROVAL DASHBOARD (FR-04) -->
+                <section id="view-admin-dashboard" class="view-section">
+                    <!-- Overview Summary Statistics -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon primary">
+                                <i class="fa-solid fa-clipboard-list"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h4 data-i18n="stat_total_bookings">การจองทั้งหมด</h4>
+                                <p id="admin-stat-total-bookings">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon warning">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h4 data-i18n="stat_pending_bookings">รอการอนุมัติ</h4>
+                                <p id="admin-stat-pending-bookings" style="color: var(--warning);">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h4 data-i18n="stat_active_cars">จำนวนรถในระบบ</h4>
+                                <p id="admin-stat-total-vehicles">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon info">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <div class="stat-details">
+                                <h4 data-i18n="stat_users">ผู้ใช้งานในระบบ</h4>
+                                <p id="admin-stat-total-users">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 1.25rem;" data-i18n="header_pending_list">คำขอจองรถยนต์รอการพิจารณา</h3>
+
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table>
+                                <thead class="admin-thead">
+                                    <tr>
+                                        <th data-i18n="th_user">ผู้ขอจอง / บทบาท</th>
+                                        <th data-i18n="th_car">ยานพาหนะ</th>
+                                        <th data-i18n="th_start">เวลาเริ่ม</th>
+                                        <th data-i18n="th_end">เวลาสิ้นสุด</th>
+                                        <th data-i18n="th_reason">เหตุผลการจอง</th>
+                                        <th data-i18n="th_actions">การอนุมัติ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-pending-bookings-table-body">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 4: ADMIN VEHICLE CRUD (FR-02) -->
+                <section id="view-admin-vehicles" class="view-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 data-i18n="header_vehicle_management">จัดการข้อมูลยานพาหนะในระบบ</h3>
+                        <button type="button" id="btn-add-vehicle" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-plus"></i>
+                            <span data-i18n="btn_add_car">เพิ่มรถใหม่</span>
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table>
+                                <thead class="admin-thead">
+                                    <tr>
+                                        <th data-i18n="th_car_info">ข้อมูลรถยนต์</th>
+                                        <th data-i18n="th_type">ประเภท</th>
+                                        <th data-i18n="th_plate">เลขทะเบียน</th>
+                                        <th data-i18n="th_seats">จำนวนที่นั่ง</th>
+                                        <th data-i18n="th_fuel">ประเภทเชื้อเพลิง</th>
+                                        <th data-i18n="th_status">สถานะรถ</th>
+                                        <th data-i18n="th_actions">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-vehicles-table-body">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 5: ADMIN REPORTS & STATISTICS (FR-06) -->
+                <section id="view-admin-reports" class="view-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 data-i18n="header_reports">รายงานสรุปข้อมูลสถิติการใช้งานรถยนต์</h3>
+                        <button type="button" onclick="window.print()" class="btn btn-secondary btn-sm">
+                            <i class="fa-solid fa-print"></i>
+                            <span data-i18n="btn_print">พิมพ์รายงาน</span>
+                        </button>
+                    </div>
+
+                    <div class="report-panel-grid">
+                        <!-- Chart 1: Bookings by Vehicle Type -->
+                        <div class="report-card">
+                            <div class="report-card-title">
+                                <span data-i18n="report_by_type">สัดส่วนการจองแบ่งตามประเภทรถ</span>
+                                <i class="fa-solid fa-chart-column"></i>
+                            </div>
+                            <div class="chart-visual-wrapper">
+                                <div id="chart-by-type" class="chart-bar-container">
+                                    <!-- Dynamic bars loaded by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Booking Status distribution -->
+                        <div class="report-card">
+                            <div class="report-card-title">
+                                <span data-i18n="report_by_status">สัดส่วนตามสถานะการจอง</span>
+                                <i class="fa-solid fa-chart-pie"></i>
+                            </div>
+                            <div class="chart-visual-wrapper">
+                                <div id="chart-by-status-container" class="donut-chart-container">
+                                    <!-- SVG Donut Chart dynamically rendered by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Popularity Table of vehicles booked -->
+                    <h3 style="margin-bottom: 1rem;" data-i18n="report_table_title">ความนิยมของการใช้งานยานพาหนะ (จำนวนครั้งที่ถูกจอง)</h3>
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table>
+                                <thead class="admin-thead">
+                                    <tr>
+                                        <th data-i18n="th_rank">อันดับ</th>
+                                        <th data-i18n="th_car">ยานพาหนะ</th>
+                                        <th data-i18n="th_plate">เลขทะเบียน</th>
+                                        <th data-i18n="report_th_count">จำนวนการจอง (ครั้ง)</th>
+                                        <th data-i18n="report_th_progress">สัดส่วนความนิยม</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-reports-table-body">
+                                    <!-- Dynamic records -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+       MODAL DIALOGS
+       ========================================================================== -->
+
+    <!-- MODAL 1: BOOKING CREATION MODAL (FR-04) -->
+    <div id="modal-booking" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="modal_booking_title">ทำการจองยานพาหนะ</h3>
+                <button type="button" id="btn-close-booking-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <form id="form-booking">
+                <div class="modal-body">
+                    <input type="hidden" id="booking-vehicle-id">
+                    
+                    <div style="background-color: var(--primary-light); padding: 12px; border-radius: 8px; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
+                        <div>
+                            <strong id="booking-vehicle-name" style="font-size: 0.95rem; display: block; color: var(--text-primary);">Car model</strong>
+                            <small id="booking-vehicle-plate" style="color: var(--text-secondary);">Plate info</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="booking-start" data-i18n="booking_label_start">วันและเวลาที่เริ่มจองใช้งาน</label>
+                        <input type="datetime-local" id="booking-start" required>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="booking-end" data-i18n="booking_label_end">วันและเวลาที่สิ้นสุดการใช้งาน</label>
+                        <input type="datetime-local" id="booking-end" required>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="booking-reason" data-i18n="booking_label_reason">วัตถุประสงค์ในการจอง / แผนงานเดินทาง</label>
+                        <textarea id="booking-reason" required placeholder="ระบุเหตุผลในการใช้รถยนต์เพื่อความจำเป็นในการอนุมัติ..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancel-booking" class="btn btn-secondary btn-sm" data-i18n="btn_cancel">ยกเลิก</button>
+                    <button type="submit" id="btn-confirm-booking" class="btn btn-primary btn-sm" data-i18n="btn_confirm_booking">ยืนยันการจอง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADMIN VEHICLE CRUD MODAL (FR-02) -->
+    <div id="modal-vehicle" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-vehicle-title" data-i18n="modal_vehicle_add_title">เพิ่มข้อมูลยานพาหนะ</h3>
+                <button type="button" id="btn-close-vehicle-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <form id="form-vehicle">
+                <div class="modal-body">
+                    <input type="hidden" id="vehicle-form-id">
+                    
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="vehicle-name" data-i18n="vehicle_label_name">ชื่อรุ่นยี่ห้อ (ภาษาไทย)</label>
+                        <input type="text" id="vehicle-name" required placeholder="โตโยต้า แคมรี่ ไฮบริด">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="vehicle-name-en" data-i18n="vehicle_label_name_en">ชื่อรุ่นยี่ห้อ (ภาษาอังกฤษ)</label>
+                        <input type="text" id="vehicle-name-en" required placeholder="Toyota Camry Hybrid">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="vehicle-type" data-i18n="vehicle_label_type">ประเภทรถยนต์</label>
+                            <select id="vehicle-type" required>
+                                <option value="sedan" data-i18n="filter_sedan">เก๋ง (Sedan)</option>
+                                <option value="suv" data-i18n="filter_suv">อเนกประสงค์ (SUV)</option>
+                                <option value="van" data-i18n="filter_van">ตู้ (Van)</option>
+                                <option value="ev" data-i18n="filter_ev">ไฟฟ้า (EV)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicle-plate" data-i18n="vehicle_label_plate">เลขทะเบียนรถ</label>
+                            <input type="text" id="vehicle-plate" required placeholder="กข 1234 กรุงเทพฯ">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="vehicle-seats" data-i18n="vehicle_label_seats">จำนวนที่นั่ง</label>
+                            <input type="number" id="vehicle-seats" min="2" max="50" required placeholder="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicle-fuel" data-i18n="vehicle_label_fuel">ประเภทพลังงาน</label>
+                            <select id="vehicle-fuel" required>
+                                <option value="gasoline" data-i18n="fuel_gasoline">เบนซิน (Gasoline)</option>
+                                <option value="diesel" data-i18n="fuel_diesel">ดีเซล (Diesel)</option>
+                                <option value="hybrid" data-i18n="fuel_hybrid">ไฮบริด (Hybrid)</option>
+                                <option value="electric" data-i18n="fuel_electric">ไฟฟ้า 100% (EV)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="vehicle-status" data-i18n="vehicle_label_status">สถานะเบื้องต้นของรถ</label>
+                        <select id="vehicle-status" required>
+                            <option value="available" data-i18n="vehicle_status_available">พร้อมใช้งาน (Available)</option>
+                            <option value="maintenance" data-i18n="vehicle_status_maintenance">ส่งซ่อมบำรุง (Maintenance)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancel-vehicle" class="btn btn-secondary btn-sm" data-i18n="btn_cancel">ยกเลิก</button>
+                    <button type="submit" id="btn-confirm-vehicle" class="btn btn-primary btn-sm" data-i18n="btn_save">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CONFIRM ACTION MODAL (GENERIC) -->
+    <div id="modal-confirm" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="confirm-title" data-i18n="confirm_title">ยืนยันการดำเนินการ</h3>
+                <button type="button" id="btn-close-confirm-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="font-size: 0.95rem; color: var(--text-secondary);">คุณแน่ใจหรือไม่ที่จะยกเลิกรายการนี้?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancel-confirm" class="btn btn-secondary btn-sm" data-i18n="btn_no">ไม่ใช่</button>
+                <button type="button" id="btn-action-confirm" class="btn btn-danger btn-sm" data-i18n="btn_yes">ใช่, ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core App JS Files -->
+    <script src="js/db.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/test-suite.js"></script>
+</body>
+</html>
